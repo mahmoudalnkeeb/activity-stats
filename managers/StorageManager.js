@@ -1,12 +1,12 @@
-const { Database } = require('sqlite3').verbose()
-const Logger = require('../utils/logger')
+const { Database } = require("sqlite3").verbose();
+const Logger = require("../utils/logger");
 
 module.exports = class StorageManager {
   constructor(config) {
-    this.logger = new Logger('STORAGE')
+    this.logger = new Logger("STORAGE");
     this.client = new Database(config.dbPath, (err) => {
-      if (err) this.logger.log_err('Error opening database:', err.message)
-    })
+      if (err) this.logger.log_err("Error opening database:", err.message);
+    });
   }
 
   async migrate_db() {
@@ -18,16 +18,29 @@ module.exports = class StorageManager {
         username TEXT NOT NULL,
         time_created INTEGER NOT NULL
       );
-    `
-    await this.execute(query, [], 'Table "messages" created or already exists.')
+    `;
+    await this.execute(
+      query,
+      [],
+      'Table "messages" created or already exists.',
+    );
   }
 
-  async save_message({ user_id, username, server_id, time_created = Date.now() }) {
+  async save_message({
+    user_id,
+    username,
+    server_id,
+    time_created = Date.now(),
+  }) {
     const query = `
       INSERT INTO messages (user_id, username,server_id,time_created)
       VALUES (?, ?, ?, ? );
-    `
-    await this.execute(query, [user_id, username, server_id, time_created], `Message saved for user ${username}`)
+    `;
+    await this.execute(
+      query,
+      [user_id, username, server_id, time_created],
+      `Message saved for user ${username}`,
+    );
   }
 
   async get_period_stats(server_id, start, end) {
@@ -58,8 +71,12 @@ module.exports = class StorageManager {
     FROM
       UserMessageCounts u,
       OverallAverage o;
-  `
-    return await this.fetch(query, [server_id, start, end], `Messages retrieved between ${start} and ${end}`)
+  `;
+    return await this.fetch(
+      query,
+      [server_id, start, end],
+      `Messages retrieved between ${start} and ${end}`,
+    );
   }
 
   async get_user_period_stats(start, end, server_id, user_id) {
@@ -92,9 +109,13 @@ module.exports = class StorageManager {
       OverallAverage o
     WHERE
       u.user_id = ?;
-  `
+  `;
 
-    return await this.execute(query, [start, end, server_id, user_id], `stats get for user_id ${user_id}`)
+    return await this.execute(
+      query,
+      [start, end, server_id, user_id],
+      `stats get for user_id ${user_id}`,
+    );
   }
 
   // Helper methods for database operations
@@ -102,27 +123,27 @@ module.exports = class StorageManager {
     return new Promise((resolve, reject) => {
       this.client.run(query, params, (err) => {
         if (err) {
-          this.logger.log_err(err.message)
-          reject(err)
+          this.logger.log_err(err.message);
+          reject(err);
         } else {
-          this.logger.log_info(successMsg)
-          resolve()
+          this.logger.log_info(successMsg);
+          resolve();
         }
-      })
-    })
+      });
+    });
   }
 
   fetch(query, params, successMsg) {
     return new Promise((resolve, reject) => {
       this.client.all(query, params, (err, rows) => {
         if (err) {
-          this.logger.log_err(err.message)
-          reject(err)
+          this.logger.log_err(err.message);
+          reject(err);
         } else {
-          this.logger.log_info(successMsg)
-          resolve(rows)
+          this.logger.log_info(successMsg);
+          resolve(rows);
         }
-      })
-    })
+      });
+    });
   }
-}
+};

@@ -8,4 +8,4 @@ const statsManager = new StatisticsManager(envConfig, storage)
 const discordManager = new DiscordManager(envConfig, storage, statsManager)
 
 storage.migrate_db()
-discordManager.init_client()
+discordManager.init_client(process.argv.includes('reload-commands'))

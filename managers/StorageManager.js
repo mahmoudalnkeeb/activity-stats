@@ -10,35 +10,91 @@ module.exports = class StorageManager {
   }
 
   async migrate_db() {
+    // TODO: refactor database schema to optimize queries
     const query = `
       CREATE TABLE IF NOT EXISTS messages (
         user_id INTEGER NOT NULL,
+        server_id TEXT NOT NULL,
         username TEXT NOT NULL,
-        message_content TEXT NOT NULL,
         time_created INTEGER NOT NULL
       );
     `
     await this.execute(query, [], 'Table "messages" created or already exists.')
   }
 
-  async save_message({ user_id, username, message_content, time_created = Date.now() }) {
+  async save_message({ user_id, username, server_id, time_created = Date.now() }) {
     const query = `
-      INSERT INTO messages (user_id, username, message_content, time_created)
-      VALUES (?, ?, ?, ?);
+      INSERT INTO messages (user_id, username,server_id,time_created)
+      VALUES (?, ?, ?, ? );
     `
-    await this.execute(query, [user_id, username, message_content, time_created], `Message saved for user ${username}`)
+    await this.execute(query, [user_id, username, server_id, time_created], `Message saved for user ${username}`)
   }
 
-  // FIXME: get only count
-  async get_period_messages(start, end) {
-    const query = `SELECT COUNT(*) FROM messages WHERE time_created BETWEEN ? AND ?;`
-    return await this.fetch(query, [start, end], `Messages retrieved between ${start} and ${end}`)
+  async get_period_stats(server_id, start, end) {
+    const query = `
+    WITH UserMessageCounts AS (
+      SELECT
+        user_id,
+        COUNT(*) AS message_count
+      FROM
+        messages
+      WHERE
+        server_id = ? AND
+        time_created BETWEEN ? AND ?
+      GROUP BY
+        user_id
+    ),
+    OverallAverage AS (
+      SELECT
+        AVG(message_count) AS overall_avg
+      FROM
+        UserMessageCounts
+    )
+    SELECT
+      u.user_id,
+      u.message_count,
+      o.overall_avg,
+      (u.message_count * 1.0 / o.overall_avg) AS relative_to_avg
+    FROM
+      UserMessageCounts u,
+      OverallAverage o;
+  `
+    return await this.fetch(query, [server_id, start, end], `Messages retrieved between ${start} and ${end}`)
   }
 
-  // FIXME: get only count of messages in specific timeframe
-  async get_user_messages(user_id) {
-    const query = `SELECT COUNT(*) FROM messages WHERE user_id = ? ORDER BY time_created DESC;`
-    return await this.fetch(query, [user_id], `Messages retrieved for user ${user_id}`)
+  async get_user_period_stats(start, end, server_id, user_id) {
+    const query = `
+    WITH UserMessageCounts AS (
+      SELECT
+        user_id,
+        COUNT(*) AS message_count
+      FROM
+        messages
+      WHERE
+        time_created BETWEEN ? AND ?
+        AND server_id = ?
+      GROUP BY
+        user_id
+    ),
+    OverallAverage AS (
+      SELECT
+        AVG(message_count) AS overall_avg
+      FROM
+        UserMessageCounts
+    )
+    SELECT
+      u.user_id,
+      u.message_count,
+      o.overall_avg,
+      (u.message_count * 1.0 / o.overall_avg) AS relative_to_avg
+    FROM
+      UserMessageCounts u,
+      OverallAverage o
+    WHERE
+      u.user_id = ?;
+  `
+
+    return await this.execute(query, [start, end, server_id, user_id], `stats get for user_id ${user_id}`)
   }
 
   // Helper methods for database operations

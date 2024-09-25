@@ -1,0 +1,32 @@
+[
+  {
+    "name": "activity",
+    "description": "Get period stats for all users",
+    "options": [
+      {
+        "name": "duration",
+        "description": "activity duration (optional)",
+        "type": 4,
+        "required": false
+      }
+    ]
+  },
+  {
+    "name": "useractivity",
+    "description": "Get your stats or other user stats in specified period",
+    "options": [
+      {
+        "name": "duration",
+        "description": "activity duration (optional)",
+        "type": 4,
+        "required": false
+      },
+      {
+        "name": "user",
+        "description": "User to get stats for (optional)",
+        "type": 6,
+        "required": false
+      }
+    ]
+  }
+]
